@@ -115,3 +115,5 @@ create policy "Users can insert findings for their reviews"
     where public.reviews.id = public.review_findings.review_id
     and public.projects.user_id = auth.uid()
   ));
+
+-- Day 10: DB Schema documented cleanly
