@@ -2,22 +2,35 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
-import { Sparkles, Terminal, ShieldAlert, Cpu } from "lucide-react"
+import { Terminal, Eye, EyeOff, Loader2 } from "lucide-react"
 import { BrandLogo } from "@/components/brand-logo"
 
 export default function LoginPage() {
   const router = useRouter()
   const supabase = createClient()
+  
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  const handleGoogleLogin = async () => {
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email.trim() || !password.trim()) {
+      toast.error("Please fill in all email and password fields.")
+      return
+    }
+
     setLoading(true)
 
-    // Bypass checking for mock envs
+    // Bypass check for mock local test environments
     const isMock = process.env.NEXT_PUBLIC_SUPABASE_URL === "https://mock.supabase.co" || !process.env.NEXT_PUBLIC_SUPABASE_URL
 
     if (isMock) {
@@ -28,16 +41,18 @@ export default function LoginPage() {
     }
 
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       })
 
       if (error) throw error
+
+      toast.success("Signed in successfully! Redirecting...")
+      router.push("/dashboard")
+      router.refresh()
     } catch (error: any) {
-      toast.error(error.message || "Failed to initialize Google Authentication")
+      toast.error(error.message || "Invalid login credentials. Please check and try again.")
       setLoading(false)
     }
   }
@@ -110,11 +125,11 @@ const analyzeComplexity = (code: string) => {
         </div>
       </div>
 
-      {/* Right Panel: Glassmorphism auth panel */}
+      {/* Right Panel: Auth panel */}
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 lg:w-1/2 bg-background relative">
         <div className="absolute top-[20%] right-[10%] w-[300px] h-[300px] rounded-full bg-secondary/15 blur-[90px] animate-blob-3" />
         
-        <div className="w-full max-w-md space-y-8 z-10">
+        <div className="w-full max-w-md space-y-6 z-10">
           <div className="text-center space-y-2">
             {/* Mobile-only logo */}
             <div className="mx-auto lg:hidden flex justify-center mb-4">
@@ -124,44 +139,78 @@ const analyzeComplexity = (code: string) => {
               Welcome back
             </h1>
             <p className="text-sm text-muted-foreground">
-              Sign in with your account to access your dashboard
+              Sign in with your account credentials
             </p>
           </div>
 
           <Card className="border-border bg-card/45 backdrop-blur-md rounded-3xl p-6 shadow-2xl">
-            <CardHeader className="space-y-1 text-center pb-6">
-              <CardDescription className="text-xs text-muted-foreground">
-                Google Authentication will automatically link your account securely.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button 
-                onClick={handleGoogleLogin} 
+            <form onSubmit={handleEmailLogin} className="space-y-4">
+              
+              {/* Email Address */}
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Email Address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
+                  className="bg-background/40 border-border rounded-2xl py-5 focus-visible:ring-primary"
+                  required
+                />
+              </div>
+
+              {/* Password */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Password</Label>
+                  <Link href="/reset-password" className="text-xs text-accent hover:underline">Forgot password?</Link>
+                </div>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                    className="bg-background/40 border-border rounded-2xl py-5 pr-10 focus-visible:ring-primary"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+                  </button>
+                </div>
+              </div>
+
+              <Button
+                type="submit"
                 disabled={loading}
-                className="w-full bg-primary hover:bg-primary/95 text-primary-foreground font-semibold py-6 rounded-2xl flex items-center justify-center gap-3 shadow-md hover:shadow-lg transition-all duration-300"
+                className="w-full bg-primary hover:bg-primary/95 text-primary-foreground font-bold py-6 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 mt-2"
               >
                 {loading ? (
                   <>
-                    <svg className="animate-spin h-5 w-5 text-current" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    Connecting...
+                    <Loader2 className="h-4.5 w-4.5 animate-spin" />
+                    Signing in...
                   </>
                 ) : (
-                  <>
-                    {/* Google SVG Icon */}
-                    <svg className="h-5 w-5 text-current" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05" />
-                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                    </svg>
-                    Continue with Google
-                  </>
+                  "Sign In"
                 )}
               </Button>
-            </CardContent>
+            </form>
+
+            {/* Link to Signup */}
+            <div className="text-center mt-6 text-xs text-muted-foreground">
+              Don&apos;t have an account?{" "}
+              <Link href="/signup" className="text-accent hover:underline font-bold">
+                Sign up
+              </Link>
+            </div>
           </Card>
         </div>
       </div>

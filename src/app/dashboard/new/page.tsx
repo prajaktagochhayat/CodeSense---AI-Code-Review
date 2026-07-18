@@ -174,6 +174,32 @@ export default function NewReviewPage() {
       setPipelineStage("saving")
       const result = await response.json()
       
+      // Cache mock reviews locally to handle serverless stateless routing
+      if (result.reviewId.startsWith("mock-")) {
+        const localMockCache = JSON.parse(localStorage.getItem("mockReviews") || "{}")
+        localMockCache[result.reviewId] = {
+          id: result.reviewId,
+          project_name: projectName,
+          language,
+          overall_score: result.score,
+          summary: "This report was generated in mock review mode. Local simulation completed successfully.",
+          code,
+          file_name: activeTab === "upload" ? file?.name : "main.js",
+          created_at: new Date().toISOString(),
+          findings: [
+            {
+              id: "mock-finding-1",
+              severity: "warning",
+              issue: "Local Storage Simulation mode active",
+              explanation: "Database query bypass mode is active. Displaying mock code review details successfully in client sandbox.",
+              line_number: 1,
+              file_name: activeTab === "upload" ? file?.name : "main.js"
+            }
+          ]
+        }
+        localStorage.setItem("mockReviews", JSON.stringify(localMockCache))
+      }
+
       toast.success("Review complete! Redirecting to report...")
       router.push(`/dashboard/review/${result.reviewId}`)
       router.refresh()

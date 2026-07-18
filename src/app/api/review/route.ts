@@ -42,6 +42,30 @@ export async function POST(request: Request) {
     let reviewId = ""
 
     try {
+      // Ensure a profile row exists for the current user to satisfy foreign key constraints
+      if (userId !== "00000000-0000-0000-0000-000000000000") {
+        try {
+          const { data: profileCheck } = await supabase
+            .from("profiles")
+            .select("id")
+            .eq("id", userId)
+            .single()
+
+          if (!profileCheck) {
+            await supabase
+              .from("profiles")
+              .insert({
+                id: userId,
+                name: user?.user_metadata?.name || "Developer",
+                email: user?.email || "",
+                avatar_url: "avatar-1",
+              })
+          }
+        } catch (profileError) {
+          console.warn("Profile pre-flight sync failed, proceeding to insert project", profileError)
+        }
+      }
+
       // Find or create project
       const { data: existingProjects, error: fetchProjError } = await supabase
         .from("projects")

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { ReviewDetail, ReviewDetailData } from "@/components/review-detail"
+import { MockReviewLoader } from "@/components/mock-review-loader"
 
 export const dynamic = "force-dynamic"
 
@@ -10,6 +11,11 @@ interface PageProps {
 
 export default async function ReviewDetailPage({ params }: PageProps) {
   const { id } = await params
+
+  // Resolve mock reviews locally on the client to avoid serverless memory gaps
+  if (id.startsWith("mock-")) {
+    return <MockReviewLoader id={id} />
+  }
 
   let reviewData: ReviewDetailData | null = null
 
